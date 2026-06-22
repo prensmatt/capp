@@ -40,7 +40,27 @@ func (r *ProductRepository) GetByID(id int) (*models.Product,error){
 }
 
 func (r *ProductRepository) GetAll(limit, offset int)([]*models.Product,error){
+	query := `SELECT id,name,slug,description,price,stock,category_id,image_url,created_at
+						FROM products
+						ORDER BY created_at DESC
+						LIMIT $1 OFFSET $2
+	`
+	rows, err := r.DB.Query(query,limit,offset)
+	if err != nil{
+		return nil, err
+	}
+	defer rows.Close()
 
+	var products []*models.Product
+	for rows.Next(){
+		var p models.Product
+		if err := rows.Scan(&p.ID,&p.Name,&p.Slug,&p.Description,
+			&p.Price,&p.Stock,&p.CategoryID,&p.ImageURL,&p.CreatedAt,);err != nil{
+				return nil, err
+			}
+			products = append(products,&p)
+	}
+	return products,rows.Err()
 }
 
 func (r *ProductRepository) Update(p *models.Product) error{
