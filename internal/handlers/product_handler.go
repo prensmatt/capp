@@ -4,6 +4,7 @@ import(
 	"errors"
 	"net/http"
 	"strconv"
+	"encoding/json"
 
 	"github.com/julienschmidt/httprouter"
 	"ecommerce/internal/repository"
@@ -34,4 +35,19 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 	writeJSON(w, http.StatusOK, product)
+}
+
+func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	var p models.Product
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil{
+		writeError(w, http.StatusBadRequest,"invalid request body")
+		return
+	}
+	err = h.Repo.Insert(&p)
+	if err != nil{
+		writeError(w, http.StatusInternalServerError, "could not create product")
+		return
+	}
+	writeJSON(w, http.StatusCreated, p)
 }
