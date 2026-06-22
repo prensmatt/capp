@@ -54,3 +54,37 @@ func (r *OrderRepository) Create(o *models.Order) error{
 	}
 	return tx.Commit()
 }
+
+
+func (r *OrderRepository) GetByID(id int)(*models.Order,error){
+	var o models.Order
+	query := `SELECT id,user_id,status,total_price,created_at
+						FROM orders WHERE id=$1
+	`
+	err := r.DB.QueryRow(query,id).Scan(&o.ID,&o.UserID,&o.Status,&o.TotalPrice,&o.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows){
+		return nil,models.ErrNotFound
+	}
+	if err != nil{
+		return nil,err
+	}
+
+	itemsQuery := `SELECT id,order_id,product_id,quantity,unit_price
+								FROM order_items WHERE order_id=$1
+	`
+	rows,err := r.DB.Query(itemsQuery,id)
+	if err != nil{
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next(){
+		var item models.OrderItem
+		if err := rows.Scan(&item.ID,&item.OrderID,
+			&item.ProductID,&item.Quantity,&item.UnitPrice,);err != nil{
+				return nil, err
+			}
+			o.Items = append(o.Items,item)
+	}
+	return &o,rows.Err()
+}
