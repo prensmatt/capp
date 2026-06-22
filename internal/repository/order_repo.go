@@ -88,3 +88,25 @@ func (r *OrderRepository) GetByID(id int)(*models.Order,error){
 	}
 	return &o,rows.Err()
 }
+
+func (r *OrderRepository) GetAll(limit, offset int)([]*models.Order,error){
+	query := `SELECT id, user_id, status, total_price, created_at FROM orders
+	ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+
+	rows, err := r.DB.Query(query, limit, offset)
+	if err != nil{
+		return nil, err
+	}
+	defer rows.Close()
+	var orders []*models.Order
+	for rows.Next(){
+		var o models.Order
+		if err := rows.Scan(&o.ID,&o.UserID,&o.Status,
+			&o.TotalPrice,&o.CreatedAt,); err != nil{
+				return nil, err
+		}
+		orders = append(orders, &o)
+	}
+	return orders, rows.Err()
+
+}
