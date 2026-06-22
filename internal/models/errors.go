@@ -8,4 +8,5 @@ var(
 	ErrNotFound = errors.New("record not found")
 	ErrDuplicateEmail =	errors.New("duplicate email")
 	ErrInvalidInput =	errors.New("invalid input")
+	ErrInsufficientStock = errors.New("insufficient stock")
 )
