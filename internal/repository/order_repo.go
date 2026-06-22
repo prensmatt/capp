@@ -110,3 +110,19 @@ func (r *OrderRepository) GetAll(limit, offset int)([]*models.Order,error){
 	return orders, rows.Err()
 
 }
+
+func (r *OrderRepository) UpdateStatus(id int, status string) error{
+	query := `UPDATE orders SET status= $1 WHERE id=$2`
+	result, err := r.DB.Exec(query,status,id)
+	if err != nil{
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+	if rows==0{
+		return models.ErrNotFound
+	}
+	return nil
+}
