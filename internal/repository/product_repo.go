@@ -83,5 +83,17 @@ func (r *ProductRepository) Update(p *models.Product) error{
 }
 
 func (r *ProductRepository) Delete(id int) error{
-
+	query := `DELETE FROM products WHERE id=$1`
+	result,err := r.DB.Exec(query,id)
+	if err != nil{
+		return err
+	}
+	rows,err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+	if rows==0{
+		return models.ErrNotFound
+	}
+	return nil
 }
