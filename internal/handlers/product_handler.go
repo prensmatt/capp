@@ -99,3 +99,21 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request, p
 	}
 	writeJSON(w, http.StatusOK, p)
 }
+
+func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil{
+		writeError(w, http.StatusBadRequest,"invalid id")
+		return
+	}
+	err = h.Repo.Delete(id)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w,http.StatusNotFound,"product not found")
+		return
+	}
+	if err != nil{
+		writeError(w, http.StatusInternalServerError, "could not delete the product")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
