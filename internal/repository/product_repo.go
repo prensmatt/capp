@@ -64,7 +64,22 @@ func (r *ProductRepository) GetAll(limit, offset int)([]*models.Product,error){
 }
 
 func (r *ProductRepository) Update(p *models.Product) error{
-
+	query := `UPDATE products
+						SET name=$1,slug=$2, description=$3, price=$4, stock=$5, category_id=$6, image_url=$7
+						WHERE id=$8
+	`
+	result,err := r.DB.Exec(query,p.Name,p.Slug,p.Description,p.Price,p.Stock,p.CategoryID,p.ImageURL)
+	if err != nil{
+		return err
+	}
+	rows,err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+	if rows==0{
+		return models.ErrNotFound
+	}
+	return nil
 }
 
 func (r *ProductRepository) Delete(id int) error{
