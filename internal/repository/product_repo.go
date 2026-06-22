@@ -12,13 +12,13 @@ type ProductRepository struct{
 }
 
 func NewProductRepository(db *sql.DB) *ProductRepository{
-	return ProductRepository{DB: db}
+	return &ProductRepository{DB: db}
 }
 
 func (r *ProductRepository) Insert(p *models.Product) error{
 	query := `INSERT INTO products(name,slug,description,price,stock,category_id,image_url)
 						VALUES($1,$2,$3,$4,$5,$6,$7)
-						RETURNING(id,created_at)
+						RETURNING id,created_at
 	`
 
 	err := r.DB.QueryRow(query,p.Name,p.Slug,p.Description,p.Price,p.Stock,p.CategoryID,p.ImageURL).Scan(&p.ID,&p.CreatedAt)
@@ -26,6 +26,7 @@ func (r *ProductRepository) Insert(p *models.Product) error{
 }
 
 func (r *ProductRepository) GetByID(id int) (*models.Product,error){
+	var p models.Product
 	query := `SELECT id,name,slug,description,price,stock,category_id,image_url,created_at
 						FROM products WHERE id=$1
 	`
@@ -68,7 +69,7 @@ func (r *ProductRepository) Update(p *models.Product) error{
 						SET name=$1,slug=$2, description=$3, price=$4, stock=$5, category_id=$6, image_url=$7
 						WHERE id=$8
 	`
-	result,err := r.DB.Exec(query,p.Name,p.Slug,p.Description,p.Price,p.Stock,p.CategoryID,p.ImageURL)
+	result,err := r.DB.Exec(query,p.Name,p.Slug,p.Description,p.Price,p.Stock,p.CategoryID,p.ImageURL,p.ID)
 	if err != nil{
 		return err
 	}
