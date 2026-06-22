@@ -55,3 +55,11 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 	writeJSON(w, http.StatusOK, order)
 }
+
+func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+
+}
+
+func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	
+}
