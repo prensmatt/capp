@@ -37,3 +37,21 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request, ps ht
 	}
 	writeJSON(w, http.StatusCreated, o)
 }
+
+func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"invalid id")
+		return
+	}
+	order, err := h.Repo.GetByID(id)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w, http.StatusNotFound, "order not found")
+		return
+	}
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not fetch the order")
+		return
+	}
+	writeJSON(w, http.StatusOK, order)
+}
