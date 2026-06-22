@@ -73,3 +73,29 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request, 
 	}
 	writeJSON(w, http.StatusOK, products)
 }
+
+func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	var p models.Product
+	id,err := strconv.Atoi(ps.ByName("id"))
+	if err != nil{
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&p)
+	if err != nil{
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	p.ID = id
+	err = h.Repo.Update(&p)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w, http.StatusNotFound,"product not found")
+		return
+	}
+	if err != nil{
+		writeError(w,http.StatusInternalServerError,"could not update the product")
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}
