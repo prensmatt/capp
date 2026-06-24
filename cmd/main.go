@@ -1,7 +1,6 @@
 package main
 
 import(
-	"os"
 	"net/http"
 	"log"
 
@@ -10,6 +9,7 @@ import(
 
 	"ecommerce/internal/handlers"
 	"ecommerce/internal/repository"
+	"ecommerce/internal/config"
 )
 
 func main(){
@@ -18,16 +18,16 @@ func main(){
 		log.Println("no .env file found, relying on real environment variables")
 	}
 
-	port := os.Getenv("PORT")
-	if port == ""{
-		port="8080"
-	}
-
-	dsn := os.Getenv("DB_URL")
-	db,err := repository.NewDB(dsn)
+	cfg, err := config.Load()
 	if err != nil{
 		log.Fatal(err)
 	}
+
+	db, err := repository.NewDB(cfg.DBURL)
+	if err != nil{
+		log.Fatal(err)
+	}
+	
 	defer db.Close()
 
 	productRepo := repository.NewProductRepository(db)
@@ -52,6 +52,6 @@ func main(){
 	router.POST("/orders", orderHandler.CreateOrder)
 	router.PATCH("/orders/:id/status", orderHandler.UpdateOrderStatus)
 
-	log.Printf("Server starting on: %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Printf("Server starting on: %s", cfg.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, router))
 }
