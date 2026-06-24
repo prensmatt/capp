@@ -60,6 +60,29 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request, ps h
 
 }
 
-func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	
+func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"invalid id")
+		return
+	}
+	var body struct{
+		Status string `json:"status"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"invalid request body")
+		return
+	}
+	err = h.Repo.UpdateStatus(id, body.Status)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w,http.StatusNotFound,"order not found")
+		return
+	}
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not update status")
+		return
+	}
+	writeJSON(w, http.StatusOK,map[string]string{"status":body.Status})
 }
