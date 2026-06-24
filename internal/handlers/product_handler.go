@@ -2,6 +2,11 @@ package handlers
 
 import(
 	"errors"
+	"fmt"
+	"os"
+	"io"
+	"path/filepath"
+	"time"
 	"net/http"
 	"strconv"
 	"encoding/json"
@@ -116,4 +121,50 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ProductHandler) UploadProductImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"invalid id")
+		return
+	}
+	file,header,err := r.FormFile("image")
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"no image file provided")
+		return
+	}
+	defer file.Close()
+	ext := filepath.Ext(header.Filename)
+	filename := fmt.Sprintf("%d_%d%s", id, time.Now().UnixNano(), ext)
+
+	dst, err := os.Create(filepath.Join("static","images",filename))
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not save image")
+		return
+	}
+	defer dst.Close()
+
+	_,err = io.Copy(dst,file)
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not save image")
+		return
+	}
+	imageURL := "/static/images/" + filename
+	product, err := h.Repo.GetByID(id)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w, http.StatusNotFound,"product not found")
+		return
+	}
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not update product")
+		return
+	}
+	product.ImageURL = imageURL
+	err = h.Repo.Update(product)
+	if err != nil{
+		writeError(w, http.StatusInternalServerError, "could not update product")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"image_url": imageURL})
 }
