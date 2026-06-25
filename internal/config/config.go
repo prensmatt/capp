@@ -13,9 +13,9 @@ type Config struct{
 
 func Load() (*Config, error){
 	cfg := &Config{
-		Port: os.Getenv("PORT")
-		DBURL: os.Getenv("DB_URL")
-		JWTSecret: os.Getenv("JWT_SECRET")
+		Port: os.Getenv("PORT"),
+		DBURL: os.Getenv("DB_URL"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 	if cfg.Port == ""{
 		cfg.Port = "8080"
