@@ -66,5 +66,9 @@ func main(){
 	router.POST("/orders", orderHandler.CreateOrder)
 
 	log.Printf("Server starting on: %s", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, router))
+
+	var handler http.Handler = router
+	handler = middleware.CORS(handler)
+	handler = middleware.Logging(handler)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, handler))
 }
