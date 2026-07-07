@@ -3,7 +3,10 @@ package handlers
 import(
 	"encoding/json"
 	"net/http"
+	"errors"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
 
@@ -13,10 +16,11 @@ import(
 
 type UserHandler struct{
 	Repo *repository.UserRepository
+	Secret string
 }
 
-func NewUserHandler(repo *repository.UserRepository) *UserHandler{
-	return &UserHandler{Repo: repo}
+func NewUserHandler(repo *repository.UserRepository, secret string) *UserHandler{
+	return &UserHandler{Repo: repo, Secret: secret}
 }
 
 func(h *UserHandler) Signup(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
@@ -50,4 +54,42 @@ func(h *UserHandler) Signup(w http.ResponseWriter, r *http.Request, ps httproute
 		return
 	}
 	writeJSON(w, http.StatusCreated,u)
+}
+
+func(h *UserHandler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	var input struct{
+		Email string `json:"email"`
+		Password string `json:"password"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil{
+		writeError(w,http.StatusBadRequest,"invalid request body")
+		return
+	}
+	user, err := h.Repo.GetByEmail(input.Email)
+	if errors.Is(err, models.ErrNotFound){
+		writeError(w,http.StatusUnauthorized,"invalid credentials")
+		return
+	}
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not find user")
+		return
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),[]byte(input.Password))
+	if err != nil{
+		writeError(w,http.StatusUnauthorized,"invalid credentials")
+		return
+	}
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"role": user.Role,
+		"exp": time.Now().Add(24*time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(h.Secret))
+	if err != nil{
+		writeError(w, http.StatusInternalServerError,"could not sign password")
+		return
+	}
+	writeJSON(w,http.StatusOK,map[string]string{"token":signed})
 }
