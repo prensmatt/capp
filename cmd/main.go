@@ -33,9 +33,11 @@ func main(){
 
 	productRepo := repository.NewProductRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	productHandler := handlers.NewProductHandler(productRepo)
 	orderHandler := handlers.NewOrderHandler(orderRepo)
+	userHandler := handlers.NewUserHandler(userRepo, cfg.JWTSecret)
 
 	protect := middleware.Auth(cfg.JWTSecret)
 
@@ -64,6 +66,9 @@ func main(){
 	router.PATCH("/orders/:id/status", wrap(orderHandler.UpdateOrderStatus))
 
 	router.POST("/orders", orderHandler.CreateOrder)
+
+	router.POST("/signup", userHandler.Signup)
+	router.POST("/login", userHandler.Login)
 
 	log.Printf("Server starting on: %s", cfg.Port)
 
