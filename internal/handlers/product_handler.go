@@ -43,12 +43,49 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	var p models.Product
-	err := json.NewDecoder(r.Body).Decode(&p)
+	var input struct{
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+		Description string `json:"description"`
+		Price float64 `json:"price"`
+		Stock int `json:"stock"`
+		CategoryID int `json:"category_id"`
+	}
+
+
+	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil{
 		writeError(w, http.StatusBadRequest,"invalid request body")
 		return
 	}
+
+	//Validation for product input
+	if input.Price <= 0 {
+		writeError(w,http.StatusBadRequest,"price must be greater than 0")
+		return
+	}
+	if input.Stock < 0 {
+		writeError(w,http.StatusBadRequest,"stock cannot be negative")
+		return
+	}
+	if len(input.Slug) == 0 || len(input.Slug) > 255 {
+		writeError(w,http.StatusBadRequest,"slug is required and must be under 255 characters")
+		return
+	}
+	if len(input.Name) == 0 || len(input.Name) > 255 {
+		writeError(w,http.StatusBadRequest,"name is required and must be under 255 characters")
+		return
+	}
+
+	p := models.Product{
+		Name: input.Name,
+		Slug: input.Slug,
+		Description: input.Description,
+		Price: input.Price,
+		Stock: input.Stock,
+		CategoryID: input.CategoryID,
+	}
+
 	err = h.Repo.Insert(&p)
 	if err != nil{
 		writeError(w, http.StatusInternalServerError, "could not create product")
@@ -80,18 +117,54 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	var p models.Product
 	id,err := strconv.Atoi(ps.ByName("id"))
 	if err != nil{
 		writeError(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&p)
+	var input struct{
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+		Description string `json:"description"`
+		Price float64 `json:"price"`
+		Stock int `json:"stock"`
+		CategoryID int `json:"category_id"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil{
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+
+	//Validation for product input
+	if input.Price <= 0 {
+		writeError(w,http.StatusBadRequest,"price must be greater than 0")
+		return
+	}
+	if input.Stock < 0 {
+		writeError(w,http.StatusBadRequest,"stock cannot be negative")
+		return
+	}
+	if len(input.Slug) == 0 || len(input.Slug) > 255 {
+		writeError(w,http.StatusBadRequest,"slug is required and must be under 255 characters")
+		return
+	}
+	if len(input.Name) == 0 || len(input.Name) > 255 {
+		writeError(w,http.StatusBadRequest,"name is required and must be under 255 characters")
+		return
+	}
+
+	p := models.Product{
+		Name: input.Name,
+		Slug: input.Slug,
+		Description: input.Description,
+		Price: input.Price,
+		Stock: input.Stock,
+		CategoryID: input.CategoryID,
+	}
+
 	p.ID = id
 	err = h.Repo.Update(&p)
 	if errors.Is(err, models.ErrNotFound){
