@@ -22,6 +22,12 @@ func (r *OrderRepository) Create(o *models.Order) error{
 	}
 	defer tx.Rollback()
 
+	var total float64
+	for _, item := range o.Items{
+		total += item.UnitPrice*float64(item.Quantity)
+	}
+	o.TotalPrice = total
+	
 	query :=`INSERT INTO orders (user_id,status,total_price)
 					VALUES($1,$2,$3)
 					RETURNING id, created_at

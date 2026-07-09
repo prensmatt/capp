@@ -20,11 +20,44 @@ func NewOrderHandler(repo *repository.OrderRepository) *OrderHandler{
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	var o models.Order
-	err := json.NewDecoder(r.Body).Decode(&o)
+	var input struct{
+		UserID int `json:"user_id"`
+		Items []models.OrderItem `json:"items"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil{
 		writeError(w, http.StatusBadRequest,"invalid request body")
 		return
+	}
+
+	//validation for order
+	if input.UserID <= 0 {
+		writeError(w,http.StatusBadRequest,"valid user_id is required")
+		return
+	}
+	if len(input.Items) == 0 {
+		writeError(w,http.StatusBadRequest,"order must have at least one item")
+		return
+	}
+	for _,item := range input.Items {
+		if item.ProductID <= 0 {
+			writeError(w,http.StatusBadRequest,"valid product_id is required for each item")
+			return
+		}
+		if item.Quantity <= 0 {
+			writeError(w, http.StatusBadRequest,"quantity must be greater than 0")
+			return
+		}
+		if item.UnitPrice <= 0 {
+			writeError(w,http.StatusBadRequest,"unit_price must be greater than 0")
+			return
+		}
+	}
+
+	o := models.Order{
+		UserID: input.UserID,
+		Status: "pending",
+		Items: input.Items,
 	}
 	err = h.Repo.Create(&o)
 	if errors.Is(err, models.ErrInsufficientStock){
