@@ -130,6 +130,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request, p
 		Price float64 `json:"price"`
 		Stock int `json:"stock"`
 		CategoryID int `json:"category_id"`
+		ImageURL    string  `json:"image_url"`
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&input)
@@ -163,6 +164,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request, p
 		Price: input.Price,
 		Stock: input.Stock,
 		CategoryID: input.CategoryID,
+		ImageURL:    input.ImageURL,
 	}
 
 	p.ID = id
