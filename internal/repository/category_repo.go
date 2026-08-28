@@ -32,3 +32,16 @@ func(r *CategoryRepository) GetAll()([]*models.Category, error){
 	}
 	return categories, rows.Err()
 }
+
+func(r *CategoryRepository) GetByID(id int) (*models.Category ,error){
+	var c models.Category
+	err:= r.DB.QueryRow(`SELECT id, name, slug FROM categories WHERE id=$1`,id).Scan(&c.ID, &c.Name, &c.Slug)
+
+	if errors.Is(err, sql.ErrNoRows){
+		return nil, models.ErrNotFound
+	}
+	if err != nil{
+		return nil, err
+	}
+		return &c, nil
+}
