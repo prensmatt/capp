@@ -51,3 +51,18 @@ func(r *CategoryRepository) Insert(c *models.Category) error{
 	return err
 }
 
+func(r *CategoryRepository) Update(c *models.Category) error{
+	result, err := r.DB.Exec(`UPDATE categories SET name = $1, slug = $2 WHERE id = $3`, c.Name, c.Slug, c.ID)
+	if err != nil{
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+	if rows == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
