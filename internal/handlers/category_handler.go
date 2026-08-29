@@ -111,11 +111,31 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request,
 		writeError(w, http.StatusNotFound, "category not found")
 		return
 	}
-	
+
 	if err != nil {
 		log.Println(err)
 		writeError(w, http.StatusInternalServerError, "could not update category")
 		return
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	err = h.Repo.Delete(id)
+	if errors.Is(err, models.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "category not found")
+		return
+	}
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "could not delete category")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
