@@ -82,3 +82,40 @@ func(h *http.CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Requ
 	}
 	writeJSON(w, http.StatusCreated, c)
 }
+
+func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id, err := strconv.Atoi(ps.ByName("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	var input struct {
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+	}
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	c := models.Category{
+		ID:   id,
+		Name: input.Name,
+		Slug: input.Slug,
+	}
+
+	err = h.Repo.Update(&c)
+	if errors.Is(err, models.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "category not found")
+		return
+	}
+	
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "could not update category")
+		return
+	}
+	writeJSON(w, http.StatusOK, c)
+}
