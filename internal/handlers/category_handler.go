@@ -16,7 +16,7 @@ type CategoryHandler struct{
 	Repo *repository.CategoryRepository
 }
 
-func NewCategoryHandler(repo *repository.CategoryHandler) *CategoryHandler{
+func NewCategoryHandler(repo *repository.CategoryRepository) *CategoryHandler{
 	return &CategoryHandler{Repo: repo}
 }
 
@@ -49,7 +49,7 @@ func(h *CategoryHandler) GetCategory(w http.ResponseWriter, r *http.Request, ps 
 	writeJSON(w, http.StatusOK, category)
 }
 
-func(h *http.CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request, ps http.Params){
+func(h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	var input struct{
 		Name string `json:"name"`
 		Slug string `json:"slug"`
@@ -75,7 +75,7 @@ func(h *http.CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Requ
 		Slug: input.Slug,
 	}
 
-	err = h.repo.Insert(&c)
+	err = h.Repo.Insert(&c)
 	if err != nil{
 		writeError(w, http.StatusInternalServerError, "could not create category")
 		return
