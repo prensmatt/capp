@@ -34,10 +34,12 @@ func main(){
 	productRepo := repository.NewProductRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
 	userRepo := repository.NewUserRepository(db)
+	categoryRepo := repository.NewCategoryRepository(db)
 
 	productHandler := handlers.NewProductHandler(productRepo)
 	orderHandler := handlers.NewOrderHandler(orderRepo)
 	userHandler := handlers.NewUserHandler(userRepo, cfg.JWTSecret)
+	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 
 	protect := middleware.Auth(cfg.JWTSecret)
 
@@ -69,6 +71,12 @@ func main(){
 
 	router.POST("/signup", userHandler.Signup)
 	router.POST("/login", userHandler.Login)
+
+	router.GET("/categories", categoryHandler.GetAll)
+	router.GET("/categories/:id", categoryHandler.GetCategory)
+	router.POST("/categories", wrap(categoryHandler.CreateCategory))
+	router.PUT("/categories/:id", wrap(categoryHandler.UpdateCategory))
+	router.DELETE("/categories/:id", wrap(categoryHandler.DeleteCategory))
 
 	log.Printf("Server starting on: %s", cfg.Port)
 
