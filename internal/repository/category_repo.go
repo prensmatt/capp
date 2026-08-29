@@ -45,3 +45,9 @@ func(r *CategoryRepository) GetByID(id int) (*models.Category ,error){
 	}
 		return &c, nil
 }
+
+func(r *CategoryRepository) Insert(c *models.Category) error{
+	err := r.DB.QueryRow(`INSERT INTO categories(name, slug) VALUES ($1, $2) RETURNING id`,c.Name, c.Slug).Scan(&c.ID)
+	return err
+}
+
