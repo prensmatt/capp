@@ -48,3 +48,37 @@ func(h *CategoryHandler) GetCategory(w http.ResponseWriter, r *http.Request, ps 
 	}
 	writeJSON(w, http.StatusOK, category)
 }
+
+func(h *http.CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request, ps http.Params){
+	var input struct{
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil{
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if len(input.Name) == 0 {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if len(input.Slug) == 0 {
+		writeError(w, http.StatusBadRequest, "slug is required")
+		return
+	}
+
+	c := models.Category{
+		Name: input.Name,
+		Slug: input.Slug,
+	}
+
+	err = h.repo.Insert(&c)
+	if err != nil{
+		writeError(w, http.StatusInternalServerError, "could not create category")
+		return
+	}
+	writeJSON(w, http.StatusCreated, c)
+}
