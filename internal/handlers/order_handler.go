@@ -5,6 +5,7 @@ import(
 	"errors"
 	"encoding/json"
 	"strconv"
+	"log"
 
 	"github.com/julienschmidt/httprouter"
 	"ecommerce/internal/repository"
@@ -13,63 +14,70 @@ import(
 
 type OrderHandler struct{
 	Repo *repository.OrderRepository
+	Secret string
 }
 
-func NewOrderHandler(repo *repository.OrderRepository) *OrderHandler{
-	return &OrderHandler{Repo: repo}
+func NewOrderHandler(repo *repository.OrderRepository, secret string) *OrderHandler{
+	return &OrderHandler{Repo: repo, Secret: secret}
 }
 
-func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	var input struct{
-		UserID int `json:"user_id"`
+func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var input struct {
 		Items []models.OrderItem `json:"items"`
 	}
+
 	err := json.NewDecoder(r.Body).Decode(&input)
-	if err != nil{
-		writeError(w, http.StatusBadRequest,"invalid request body")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	//validation for order
-	if input.UserID <= 0 {
-		writeError(w,http.StatusBadRequest,"valid user_id is required")
-		return
-	}
 	if len(input.Items) == 0 {
-		writeError(w,http.StatusBadRequest,"order must have at least one item")
+		writeError(w, http.StatusBadRequest, "order must have at least one item")
 		return
 	}
-	for _,item := range input.Items {
+
+	for _, item := range input.Items {
 		if item.ProductID <= 0 {
-			writeError(w,http.StatusBadRequest,"valid product_id is required for each item")
+			writeError(w, http.StatusBadRequest, "valid product_id is required for each item")
 			return
 		}
 		if item.Quantity <= 0 {
-			writeError(w, http.StatusBadRequest,"quantity must be greater than 0")
+			writeError(w, http.StatusBadRequest, "quantity must be greater than 0")
 			return
 		}
 		if item.UnitPrice <= 0 {
-			writeError(w,http.StatusBadRequest,"unit_price must be greater than 0")
+			writeError(w, http.StatusBadRequest, "unit_price must be greater than 0")
 			return
 		}
 	}
 
-	o := models.Order{
-		UserID: input.UserID,
-		Status: "pending",
-		Items: input.Items,
+	// get user_id from JWT 
+	userID, err := getUserIDFromToken(r, h.Secret)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "invalid or missing token")
+		return
 	}
+
+	o := models.Order{
+		UserID: userID,
+		Status: "pending",
+		Items:  input.Items,
+	}
+
 	err = h.Repo.Create(&o)
-	if errors.Is(err, models.ErrInsufficientStock){
+	if errors.Is(err, models.ErrInsufficientStock) {
 		writeError(w, http.StatusUnprocessableEntity, "insufficient stock")
 		return
 	}
-	if err != nil{
-		writeError(w, http.StatusInternalServerError,"could not create order")
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "could not create order")
 		return
 	}
 	writeJSON(w, http.StatusCreated, o)
 }
+
 
 func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	id, err := strconv.Atoi(ps.ByName("id"))
