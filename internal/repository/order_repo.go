@@ -133,6 +133,12 @@ func (r *OrderRepository) UpdateStatus(id int, status string) error {
 		return err
 	}
 
+	// don't allow changing from a final state back to active
+	// unless it makes business sense
+	if currentStatus == status {
+		return nil // nothing to do
+	}
+
 	result, err := tx.Exec(`UPDATE orders SET status = $1 WHERE id = $2`, status, id)
 	if err != nil {
 		return err
@@ -146,34 +152,36 @@ func (r *OrderRepository) UpdateStatus(id int, status string) error {
 		return models.ErrNotFound
 	}
 
+	// fetch order items once — needed for both cases
+	itemRows, err := tx.Query(
+		`SELECT product_id, quantity FROM order_items WHERE order_id = $1`, id,
+	)
+	if err != nil {
+		return err
+	}
+
+	type itemData struct {
+		productID int
+		quantity  int
+	}
+	var items []itemData
+
+	for itemRows.Next() {
+		var item itemData
+		if err := itemRows.Scan(&item.productID, &item.quantity); err != nil {
+			itemRows.Close()
+			return err
+		}
+		items = append(items, item)
+	}
+	itemRows.Close()
+
+	if err := itemRows.Err(); err != nil {
+		return err
+	}
+
+	// cancelled → restore stock
 	if status == "cancelled" && currentStatus != "cancelled" {
-		itemRows, err := tx.Query(
-			`SELECT product_id, quantity FROM order_items WHERE order_id = $1`, id,
-		)
-		if err != nil {
-			return err
-		}
-
-		type itemData struct {
-			productID int
-			quantity  int
-		}
-		var items []itemData
-
-		for itemRows.Next() {
-			var item itemData
-			if err := itemRows.Scan(&item.productID, &item.quantity); err != nil {
-				itemRows.Close()
-				return err
-			}
-			items = append(items, item)
-		}
-		itemRows.Close()
-
-		if err := itemRows.Err(); err != nil {
-			return err
-		}
-
 		for _, item := range items {
 			_, err = tx.Exec(
 				`UPDATE products SET stock = stock + $1 WHERE id = $2`,
@@ -184,6 +192,29 @@ func (r *OrderRepository) UpdateStatus(id int, status string) error {
 			}
 		}
 	}
+
+	// uncancelling → decrement stock again
+	if currentStatus == "cancelled" && status != "cancelled" {
+		for _, item := range items {
+			result, err := tx.Exec(
+				`UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1`,
+				item.quantity, item.productID,
+			)
+			if err != nil {
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if affected == 0 {
+				return models.ErrInsufficientStock
+			}
+		}
+	}
+
+	return tx.Commit()
+}
 
 	return tx.Commit()
 }
