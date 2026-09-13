@@ -144,3 +144,21 @@ func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request,
 	}
 	writeJSON(w, http.StatusOK,map[string]string{"status":body.Status})
 }
+
+
+func (h *OrderHandler) GetMyOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	userID, err := getUserIDFromToken(r, h.Secret)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "invalid or missing token")
+		return
+	}
+
+	orders, err := h.Repo.GetByUserID(userID)
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "could not fetch orders")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, orders)
+}
