@@ -216,5 +216,24 @@ func (r *OrderRepository) UpdateStatus(id int, status string) error {
 	return tx.Commit()
 }
 
-	return tx.Commit()
+func (r *OrderRepository) GetByUserID(userID int) ([]*models.Order, error) {
+	query := `SELECT id, user_id, status, total_price, created_at 
+						FROM orders WHERE user_id = $1 
+						ORDER BY created_at DESC`
+
+	rows, err := r.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []*models.Order
+	for rows.Next() {
+		var o models.Order
+		if err := rows.Scan(&o.ID, &o.UserID, &o.Status, &o.TotalPrice, &o.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, &o)
+	}
+	return orders, rows.Err()
 }
