@@ -37,7 +37,7 @@ func main(){
 	categoryRepo := repository.NewCategoryRepository(db)
 
 	productHandler := handlers.NewProductHandler(productRepo)
-	orderHandler := handlers.NewOrderHandler(orderRepo)
+	orderHandler := handlers.NewOrderHandler(orderRepo, cfg.JWTSecret)
 	userHandler := handlers.NewUserHandler(userRepo, cfg.JWTSecret)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 
@@ -67,7 +67,7 @@ func main(){
 	router.GET("/orders/:id", wrap(orderHandler.GetOrder))
 	router.PATCH("/orders/:id/status", wrap(orderHandler.UpdateOrderStatus))
 
-	router.POST("/orders", orderHandler.CreateOrder)
+	router.POST("/orders", wrap(orderHandler.CreateOrder))
 
 	router.POST("/signup", userHandler.Signup)
 	router.POST("/login", userHandler.Login)
