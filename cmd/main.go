@@ -64,6 +64,7 @@ func main(){
 	router.POST("/products/:id/image", wrap(productHandler.UploadProductImage))
 
 	router.GET("/orders", wrap(orderHandler.GetAllOrders))
+	router.GET("/my-orders", wrap(orderHandler.GetMyOrders))
 	router.GET("/orders/:id", wrap(orderHandler.GetOrder))
 	router.PATCH("/orders/:id/status", wrap(orderHandler.UpdateOrderStatus))
 
