@@ -117,18 +117,73 @@ func (r *OrderRepository) GetAll(limit, offset int)([]*models.Order,error){
 
 }
 
-func (r *OrderRepository) UpdateStatus(id int, status string) error{
-	query := `UPDATE orders SET status= $1 WHERE id=$2`
-	result, err := r.DB.Exec(query,status,id)
-	if err != nil{
+func (r *OrderRepository) UpdateStatus(id int, status string) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
+
+	var currentStatus string
+	err = tx.QueryRow(`SELECT status FROM orders WHERE id = $1`, id).Scan(&currentStatus)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.ErrNotFound
+		}
+		return err
+	}
+
+	result, err := tx.Exec(`UPDATE orders SET status = $1 WHERE id = $2`, status, id)
+	if err != nil {
+		return err
+	}
+
 	rows, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	if rows==0{
+	if rows == 0 {
 		return models.ErrNotFound
 	}
-	return nil
+
+	if status == "cancelled" && currentStatus != "cancelled" {
+		itemRows, err := tx.Query(
+			`SELECT product_id, quantity FROM order_items WHERE order_id = $1`, id,
+		)
+		if err != nil {
+			return err
+		}
+
+		type itemData struct {
+			productID int
+			quantity  int
+		}
+		var items []itemData
+
+		for itemRows.Next() {
+			var item itemData
+			if err := itemRows.Scan(&item.productID, &item.quantity); err != nil {
+				itemRows.Close()
+				return err
+			}
+			items = append(items, item)
+		}
+		itemRows.Close()
+
+		if err := itemRows.Err(); err != nil {
+			return err
+		}
+
+		for _, item := range items {
+			_, err = tx.Exec(
+				`UPDATE products SET stock = stock + $1 WHERE id = $2`,
+				item.quantity, item.productID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }
