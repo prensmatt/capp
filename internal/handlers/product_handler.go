@@ -95,7 +95,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request, p
 }
 
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
-	limit := 10
+	limit := 999999
 	if l := r.URL.Query().Get("limit"); l != ""{
 		if parsed,err := strconv.Atoi(l); err == nil{
 			limit = parsed
