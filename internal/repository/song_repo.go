@@ -37,3 +37,10 @@ func(r *SongRepository) GetAll()([]*models.Song, error){
 	return songs, rows.Err()
 }
 
+func(r *SongRepository) Insert(s *models.Song) error{
+	return r.DB.QueryRow(`INSERT INTO songs (title, artist, file_url) VALUES ($1, $2, $3) RETURNING id, created_at`,
+	  s.Title, s.Artist, s.FileURL,
+	).Scan(&s.ID, &s.CreatedAt)
+
+}
+
