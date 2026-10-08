@@ -2,7 +2,7 @@ package repository
 
 import(
 	"database/sql"
-	"errors"
+	
 	"ecommerce/internal/models"
 )
 
@@ -44,3 +44,18 @@ func(r *SongRepository) Insert(s *models.Song) error{
 
 }
 
+func(r *SongRepository) Delete(id int) error{
+	result, err := r.DB.Exec(`DELETE FROM songs WHERE id = $1`, id)
+	if err != nil{
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+	if rows == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
