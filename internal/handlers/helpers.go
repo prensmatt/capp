@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"io"
+  "os"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -46,4 +48,12 @@ func getUserIDFromToken(r *http.Request, secret string) (int, error) {
 	}
 
 	return int(userID), nil
+}
+
+func createFile(path string) (*os.File, error) {
+    return os.Create(path)
+}
+
+func copyFile(dst *os.File, src io.Reader) (int64, error) {
+    return io.Copy(dst, src)
 }
