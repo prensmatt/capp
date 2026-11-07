@@ -15,7 +15,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
 # Final lightweight runner container
 FROM alpine:latest
 WORKDIR /app
+RUN mkdir -p static/images static/songs
 COPY --from=builder /app/main .
+COPY --from=builder /app/static ./static
 
 EXPOSE 8080
 CMD ["/app/main"]
